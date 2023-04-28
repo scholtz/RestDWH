@@ -13,6 +13,10 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>True</IncludeSymbols>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <PackageProjectUrl>https://github.com/scholtz/RestDWH/blob/master/RestDWH/readme.md</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/scholtz/RestDWH/</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>data apicontroller dwh elasticsearch</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
