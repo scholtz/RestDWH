@@ -37,4 +37,4 @@ jobs:
 
       - name: Push generated package to GitHub registry
         run: |  
-          dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.jsonc
+          dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json
