@@ -32,8 +32,8 @@ jobs:
         run: |  
           cd RestDWH
           ls && pwd
-          dotnet pack -c Release -o out --api-key ${{secrets.NUGET_TOKEN}}
+          dotnet pack -c Release -o out
           ls && pwd
 
       - name: Push generated package to GitHub registry
-        run: dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --no-symbols true
+        run: dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --no-symbols true  --api-key ${{secrets.NUGET_TOKEN}}
