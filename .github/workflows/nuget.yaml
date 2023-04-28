@@ -32,9 +32,7 @@ jobs:
         run: |  
           cd RestDWH
           ls && pwd
-          dotnet build --configuration Release  
-          ls && pwd
-          dotnet pack -c Release -o out -k ${{secrets.NUGET_TOKEN}}
+          dotnet pack -c Release -o out --api-key ${{secrets.NUGET_TOKEN}}
           ls && pwd
 
       - name: Push generated package to GitHub registry
