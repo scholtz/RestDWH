@@ -25,7 +25,11 @@ jobs:
       - name: Build solution and generate NuGet package
         run: |  
           cd RestDWH
+          ls && pwd
+          dotnet build --configuration Release  
+          ls && pwd
           dotnet pack -c Release -o out  
+          ls && pwd
 
       - name: Push generated package to GitHub registry
         run: dotnet nuget push ./RestDWH/RestDWH/out/*.nupkg --skip-duplicate --no-symbols true
