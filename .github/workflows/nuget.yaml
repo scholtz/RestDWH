@@ -1,0 +1,40 @@
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    name: Update NuGet package
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v1
+
+      - name: Setup .NET Core @ Latest
+        uses: actions/setup-dotnet@v1
+        with:
+          source-url: https://api.nuget.org/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.NUGET_TOKEN}}        
+          
+      - name: Debug
+        run: ls && pwd
+        
+      - name: Build solution
+        run: dotnet build --configuration Release RestDWH.sln
+        
+      - name: Debug
+        run: cd RestDWH && ls && pwd
+        
+      - name: Build solution and generate NuGet package
+        run: |  
+          cd RestDWH
+          ls && pwd
+          dotnet pack -c Release -o out -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+          ls && pwd
+
+      - name: Push generated package to GitHub registry
+        run: |  
+          dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json
