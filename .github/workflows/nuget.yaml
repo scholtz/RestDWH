@@ -19,6 +19,9 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{secrets.NUGET_TOKEN}}        
           
+      - name: Debug
+        run: ls && pwd
+        
       - name: Build solution and generate NuGet package
         run: |  
           cd RestDWH
