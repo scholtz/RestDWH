@@ -32,8 +32,9 @@ jobs:
         run: |  
           cd RestDWH
           ls && pwd
-          dotnet pack -c Release -o out
+          dotnet pack -c Release -o out -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
           ls && pwd
 
       - name: Push generated package to GitHub registry
-        run: dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --no-symbols true  --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json
+        run: |  
+          dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.jsonc
