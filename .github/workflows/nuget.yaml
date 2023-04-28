@@ -22,6 +22,12 @@ jobs:
       - name: Debug
         run: ls && pwd
         
+      - name: Build solution
+        run: dotnet build --configuration Release RestDWH.sln
+        
+      - name: Debug
+        run: cd RestDWH && ls && pwd
+        
       - name: Build solution and generate NuGet package
         run: |  
           cd RestDWH
