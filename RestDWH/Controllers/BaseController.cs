@@ -33,11 +33,44 @@ namespace RestDWH.Controllers
             return repo.Get(from, size, query, sort, User);
         }
 
+        /// <summary>
+        /// Search item from elasticsearch db
+        /// </summary>
+        /// <param name="from">From record number</param>
+        /// <param name="size">Number of records per page</param>
+        /// <param name="query">Elastic search query - data.streetLine : "Dopravaku" or data.street : "s"</param>
+        /// <param name="sort">Sort by columns. Separated by comma. 'created desc, updated asc'</param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet($"v1/Get[controller]WithFields")]
+        public Task<FieldsListBase> GetWithFields(string fields = "id", int from = 0, int size = 10, string query = "*", string sort = "")
+        {
+            return repo.GetWithFields(fields, from, size, query, sort, User);
+        }
+
         [Authorize]
         [HttpGet("v1/Get[controller]ById/{id}")]
         public Task<DBBase<TEnt>?> GetById(string id)
         {
             return repo.GetById(id, User);
+        }
+        /// <summary>
+        /// Returns entity with limited fields only
+        /// 
+        /// fields attribute: [field]:[mapToKey],[field2]:[mapToKey2]
+        /// 
+        /// example:
+        /// id,data.attribute:a .. returns dictionary [id=val,a=attribute]
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="fields"></param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("v1/Get[controller]ByIdWithFields/{id}")]
+        public Task<Dictionary<string,object>> GetByIdWithFields(string id, string fields = "id")
+        {
+            return repo.GetByIdWithFields(id, fields, User);
         }
 
         [Authorize]

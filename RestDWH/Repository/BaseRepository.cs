@@ -2,6 +2,7 @@
 using Nest;
 using RestDWH.Extensions;
 using RestDWH.Model;
+using System.Reflection;
 
 namespace RestDWH.Repository
 {
@@ -69,6 +70,26 @@ namespace RestDWH.Repository
             return result;
         }
 
+        public async Task<FieldsListBase> GetWithFields(string fields = "id", int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        {
+            var data = await Get(from, size, query, sort, user);
+            var ret = new FieldsListBase() { From = data.From, Size = data.Size, TotalCount = data.TotalCount };
+            var list = new List<Dictionary<string, object>>();
+            var fieldsStruct = ParseFields(fields);
+            foreach (var item in data.Results)
+            {
+                var itemRet = new Dictionary<string, object>();
+                foreach (var fieldKV in fieldsStruct)
+                {
+                    var val = GetObjectValue(fieldKV.Value, item);
+                    itemRet = StoreValue(itemRet, fieldKV.Key, val);
+                }
+                list.Add(itemRet);
+            }
+            ret.Results = list;
+            ret = await _events.AfterGetWithFieldsAsync(ret, fields, from, size, query, sort, user);
+            return ret;
+        }
 
         public async Task<DBBase<TEnt>?> GetById(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
@@ -78,6 +99,100 @@ namespace RestDWH.Repository
             searchResponse.Source.Id = searchResponse.Id;
             var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user);
             return result;
+        }
+        public async Task<Dictionary<string, object>> GetByIdWithFields(string id, string fields = "id", System.Security.Claims.ClaimsPrincipal? user = null)
+        {
+
+            id = await _events.BeforeGetByIdAsync(id, user);
+            var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
+            if (searchResponse.Source == null) { throw new Exception("Not found"); }
+            searchResponse.Source.Id = searchResponse.Id;
+            var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user);
+            var mapResult = MapEntityToFields(fields, result);
+            mapResult = await _events.AfterGetByIdWithFieldsAsync(mapResult, fields, id, user);
+            return mapResult;
+        }
+
+        public Dictionary<string, object> MapEntityToFields(string fields, DBBase<TEnt> obj)
+        {
+            var ret = new Dictionary<string, object>();
+            foreach (var fieldKV in ParseFields(fields))
+            {
+                var val = GetObjectValue(fieldKV.Value, obj);
+                ret = StoreValue(ret, fieldKV.Key, val);
+            }
+            return ret;
+        }
+        public Dictionary<string, object> StoreValue(Dictionary<string, object> ret, string field, object value)
+        {
+            var dict = ret;
+            var routes = field.Split(".");
+            var current = 0;
+            foreach (var route in routes)
+            {
+                current++;
+                if (current == routes.Length)
+                {
+                    // store value
+                    dict[route] = value;
+                }
+                else
+                {
+                    if (dict.ContainsKey(route))
+                    {
+                        var newDict = dict[route] as Dictionary<string, object>;
+                        if (newDict == null) { throw new Exception($"Error in fields structure. Field {route} has multiple types"); }
+                        dict = newDict;
+                    }
+                    else
+                    {
+                        var newDict = new Dictionary<string, object>();
+                        dict[route] = newDict;
+                        dict = newDict;
+                    }
+                }
+            }
+            return ret;
+        }
+        public object GetObjectValue(string field, DBBase<TEnt> obj)
+        {
+            if (string.IsNullOrEmpty(field))
+            {
+                throw new ArgumentException($"'{nameof(field)}' cannot be null or empty.", nameof(field));
+            }
+
+            if (obj is null)
+            {
+                throw new ArgumentNullException(nameof(obj));
+            }
+            object ret = obj;
+            foreach (var route in field.Split("."))
+            {
+                ret = ret?.GetType()?.GetProperty(route, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance)?.GetValue(ret, null) ?? null;
+            }
+            return ret;
+        }
+        public Dictionary<string, string> ParseFields(string fields)
+        {
+            var list = new Dictionary<string, string>();
+            foreach (var field in fields.Split(','))
+            {
+                var delim = field.IndexOf(":");
+                if (delim == 0) { throw new Exception("Error parsing fields. Field cannot start with :"); }
+                if (delim > 0)
+                {
+                    var first = field[..delim].Trim();
+                    var second = field[(delim + 1)..].Trim();
+                    if (string.IsNullOrEmpty(first) || string.IsNullOrEmpty(second)) throw new Exception("Error parsing fields. Field cannot be empty.");
+                    list[second] = first;
+                }
+                else
+                {
+                    var first = field.Trim();
+                    list[first] = first;
+                }
+            }
+            return list;
         }
         public async Task<DBBase<TEnt>> Post(TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {

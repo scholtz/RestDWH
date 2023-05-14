@@ -13,6 +13,10 @@ namespace RestDWH.Model
         {
             return result;
         }
+        public virtual async Task<FieldsListBase> AfterGetWithFieldsAsync(FieldsListBase result, string fields, int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        {
+            return result;
+        }
 
         public virtual async Task<string> BeforeGetByIdAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
@@ -22,6 +26,11 @@ namespace RestDWH.Model
         {
             return result;
         }
+        public virtual async Task<Dictionary<string, object>> AfterGetByIdWithFieldsAsync(Dictionary<string, object> result, string fields, string id, System.Security.Claims.ClaimsPrincipal? user = null)
+        {
+            return result;
+        }
+        
         public virtual async Task<T> BeforePostAsync(T data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             return data;
