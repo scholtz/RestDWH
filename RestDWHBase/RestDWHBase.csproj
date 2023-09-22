@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Library</OutputType>
+		<IsPackable>true</IsPackable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>RestDWH.Base</Title>
+		<Description>Data governance platform for fast code first development.</Description>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IncludeSymbols>True</IncludeSymbols>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<PackageProjectUrl>https://github.com/scholtz/RestDWH/blob/master/RestDWH/readme.md</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/scholtz/RestDWH/</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>data apicontroller dwh elasticsearch</PackageTags>
+		<Version>2.2023.9.22</Version>
+		<AssemblyName>RestDWH.Base</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="7.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="7.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.10" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="logo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="readme.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+</Project>

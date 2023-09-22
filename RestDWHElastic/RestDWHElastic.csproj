@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Library</OutputType>
+		<IsPackable>true</IsPackable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>RestDWH.ElasticSearch</Title>
+		<Description>Data governance platform for fast code first development.</Description>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IncludeSymbols>True</IncludeSymbols>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<PackageProjectUrl>https://github.com/scholtz/RestDWH/blob/master/RestDWH/readme.md</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/scholtz/RestDWH/</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>data apicontroller dwh elasticsearch</PackageTags>
+		<Version>2.2023.9.22</Version>
+		<AssemblyName>RestDWH.ElasticSearch</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Elasticsearch.Net" Version="7.17.5" />
+		<PackageReference Include="NEST" Version="7.17.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\RestDWHBase\RestDWHBase.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="logo.png">
+			<PackagePath>\</PackagePath>
+			<Pack>True</Pack>
+		</None>
+		<None Update="readme.md">
+			<PackagePath>\</PackagePath>
+			<Pack>True</Pack>
+		</None>
+	</ItemGroup>
+
+</Project>

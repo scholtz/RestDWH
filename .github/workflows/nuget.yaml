@@ -30,11 +30,21 @@ jobs:
         
       - name: Build solution and generate NuGet package
         run: |  
-          cd RestDWH
+          cd RestDWHBase
+          ls && pwd
+          dotnet pack -c Release -o out -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+          ls && pwd
+      - name: Build solution and generate NuGet package
+        run: |  
+          cd RestDWHElastic
           ls && pwd
           dotnet pack -c Release -o out -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
           ls && pwd
 
       - name: Push generated package to GitHub registry
         run: |  
-          dotnet nuget push ./RestDWH/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./RestDWHBase/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json
+
+      - name: Push generated package to GitHub registry
+        run: |  
+          dotnet nuget push ./RestDWHElastic/out/*.nupkg --skip-duplicate --api-key ${{secrets.NUGET_TOKEN}}  -s https://api.nuget.org/v3/index.json

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   sodipodi:docname="logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="1.2623761"
+     inkscape:cx="203.58434"
+     inkscape:cy="369.14515"
+     inkscape:window-width="3840"
+     inkscape:window-height="2089"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Vrstva 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:#0000ff;stroke-width:0.264583"
+       id="path427"
+       cx="58.985031"
+       cy="80.919167"
+       r="27.565868" />
+    <circle
+       style="fill:#0000ff;stroke-width:0.264583"
+       id="path429"
+       cx="75.880234"
+       cy="53.056889"
+       r="24.601797" />
+    <circle
+       style="fill:#0000ff;stroke-width:0.264583"
+       id="path431"
+       cx="93.516464"
+       cy="74.842812"
+       r="41.052395" />
+    <circle
+       style="fill:#0000ff;stroke-width:0.423333"
+       id="path433"
+       cx="125.67664"
+       cy="83.290421"
+       r="26.083832" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:70.5556px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="44.461075"
+       y="91.88623"
+       id="text597"><tspan
+         sodipodi:role="line"
+         id="tspan595"
+         style="font-size:70.5556px;fill:#f2f2f2;stroke-width:0.264583"
+         x="44.461075"
+         y="91.88623">{}</tspan></text>
+    <rect
+       style="opacity:0.1;fill:#ffffff;stroke:#000000;stroke-width:0.227747;stroke-opacity:1"
+       id="rect705"
+       width="129.35612"
+       height="129.35612"
+       x="26.149673"
+       y="11.589762"
+       rx="2.2774706" />
+  </g>
+</svg>
