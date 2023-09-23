@@ -4,7 +4,7 @@ using RestDWH.Base.Extensions;
 using RestDWH.Base.Model;
 using RestDWH.Elastic.Repository;
 
-namespace RestDWHElastic.Repository
+namespace RestDWH.Elastic.Repository
 {
     public class RestDWHElasticSearchRepositoryNonArchival<TEnt> : RestDWHElasticSearchRepository<TEnt> where TEnt : class
     {

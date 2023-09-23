@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace RestDWH.Repository
 {
-    public class BaseRepository<TEnt>
+    public class BaseRepository<TEnt> : IDWHRepository<TEnt>
         where TEnt : class
     {
         private readonly IElasticClient _elasticClient;
@@ -17,7 +17,7 @@ namespace RestDWH.Repository
             _events = events;
         }
 
-        public async Task<DBListBase<TEnt, DBBase<TEnt>>> Get(int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBListBase<TEnt, DBBase<TEnt>>> GetAsync(int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
         {
 
             (from, size, query, sort) = await _events.BeforeGetAsync(from, size, query, sort, user);
@@ -70,9 +70,9 @@ namespace RestDWH.Repository
             return result;
         }
 
-        public async Task<FieldsListBase> GetWithFields(string fields = "id", int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<FieldsListBase> GetWithFieldsAsync(string fields = "id", int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
         {
-            var data = await Get(from, size, query, sort, user);
+            var data = await GetAsync(from, size, query, sort, user);
             var ret = new FieldsListBase() { From = data.From, Size = data.Size, TotalCount = data.TotalCount };
             var list = new List<Dictionary<string, object>>();
             var fieldsStruct = ParseFields(fields);
@@ -91,7 +91,7 @@ namespace RestDWH.Repository
             return ret;
         }
 
-        public async Task<DBBase<TEnt>?> GetById(string id, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>?> GetByIdAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             id = await _events.BeforeGetByIdAsync(id, user);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
@@ -100,7 +100,7 @@ namespace RestDWH.Repository
             var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user);
             return result;
         }
-        public async Task<Dictionary<string, object>> GetByIdWithFields(string id, string fields = "id", System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<Dictionary<string, object>> GetByIdWithFieldsAsync(string id, string fields = "id", System.Security.Claims.ClaimsPrincipal? user = null)
         {
 
             id = await _events.BeforeGetByIdAsync(id, user);
@@ -194,7 +194,7 @@ namespace RestDWH.Repository
             }
             return list;
         }
-        public async Task<DBBase<TEnt>> Post(TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>> PostAsync(TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             data = await _events.BeforePostAsync(data, user);
             var now = DateTimeOffset.Now;
@@ -213,7 +213,7 @@ namespace RestDWH.Repository
             var result = await _events.AfterPostAsync(searchResponse.Source, data, user);
             return result;
         }
-        public async Task<DBBase<TEnt>> Put(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>> PutAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             (id, data) = await _events.BeforePutAsync(id, data, user);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
@@ -255,7 +255,7 @@ namespace RestDWH.Repository
             return result;
         }
 
-        public async Task<DBBase<TEnt>> Upsert(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>> UpsertAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             (id, data) = await _events.BeforeUpsertAsync(id, data, user);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
@@ -304,7 +304,7 @@ namespace RestDWH.Repository
         }
 
 
-        public async Task<DBBase<TEnt>> Patch(string id, JsonPatchDocument<TEnt> data, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>> PatchAsync(string id, JsonPatchDocument<TEnt> data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             (id, data) = await _events.BeforePatchAsync(id, data, user);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
@@ -350,7 +350,7 @@ namespace RestDWH.Repository
             var result = await _events.AfterPatchAsync(finalResponse.Source, id, data, user);
             return result;
         }
-        public async Task<DBBase<TEnt>> Delete(string id, System.Security.Claims.ClaimsPrincipal? user = null)
+        public async Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             //var deleteResponse = await _elasticClient.DeleteAsync<DBPerson>(id);
             id = await _events.BeforeDeleteAsync(id, user);

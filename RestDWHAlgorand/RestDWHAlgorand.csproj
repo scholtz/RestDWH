@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Library</OutputType>
+		<IsPackable>true</IsPackable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>RestDWH.Algorand</Title>
+		<Description>Data governance platform for fast code first development. Algorand module.</Description>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IncludeSymbols>True</IncludeSymbols>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<PackageProjectUrl>https://github.com/scholtz/RestDWH/blob/master/RestDWH/readme.md</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/scholtz/RestDWH/</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>data apicontroller dwh elasticsearch</PackageTags>
+		<Version>2.2023.9.22</Version>
+		<AssemblyName>RestDWH.Algorand</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="AlgorandDBStorage\AlgorandDBStorage.approval.teal" />
+	  <None Remove="AlgorandDBStorage\AlgorandDBStorage.clear.teal" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="AlgorandDBStorage\AlgorandDBStorage.approval.teal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="AlgorandDBStorage\AlgorandDBStorage.clear.teal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Algorand2" Version="2.0.0.2023082310" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\RestDWHBase\RestDWHBase.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Update="AlgorandDBStorage\AlgorandDBStorage.abi.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="AlgorandDBStorage\AlgorandDBStorage.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+</Project>
