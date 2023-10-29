@@ -206,7 +206,7 @@ namespace RestDWH.Base.Extensios
                 builder
                     .WithOpenApi(generatedOperation =>
                     {
-                        generatedOperation.Parameters[0].Description = $"The {docs?.Name} ID."; 
+                        generatedOperation.Parameters[0].Description = $"The {docs?.Name} ID.";
                         generatedOperation.Parameters[1].Description = $"The fields. Default is id. Fields can be separated by comma. Fields can be rerefeced with :. Example: id:id2,data.year:year";
                         return generatedOperation;
                     });
@@ -312,13 +312,17 @@ namespace RestDWH.Base.Extensios
                         if (customRepository != null) repository = customRepository;
                         var doc = new JsonPatchDocument<T>(data.Select(o =>
                         {
+
+                            var serialized = (o.value as System.Text.Json.JsonElement?)?.GetRawText() ?? o.value.ToString() ?? "";
+                            var value = Newtonsoft.Json.JsonConvert.DeserializeObject(serialized);
                             return new Microsoft.AspNetCore.JsonPatch.Operations.Operation<T>()
                             {
                                 from = o.from,
                                 op = o.op,
                                 path = o.path,
-                                value = (o.value as System.Text.Json.JsonElement?)?.GetRawText() ?? o.value
+                                value = value
                             };
+
                         }).Where(o => o.value != null).ToList(), new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver());
                         return Results.Ok(await repository.PatchAsync(id, doc, user));
                     }
