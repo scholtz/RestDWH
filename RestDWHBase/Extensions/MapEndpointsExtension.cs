@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using RestDWH.Base.Attributes;
 using RestDWH.Base.Model;
 using RestDWH.Base.Repository;
+using RestDWHBase.Attributes.Endpoints;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -11,14 +14,14 @@ namespace RestDWH.Base.Extensios
 {
     public static class MapEndpointsExtension
     {
-        public static void MapEndpoints<T>(this Microsoft.AspNetCore.Builder.WebApplication app, IDWHRepository<T>? customRepository) where T : class
+        public static void MapEndpoints<T>(this WebApplication app, IDWHRepository<T>? customRepository) where T : class
         {
 
             var config = typeof(T).GetCustomAttribute<RestDWHEntity>();
-            if (config == null) return;
+            if (config?.ApiNameOrName == null) return;
 
-
-            var getEndpoint = config?.EndpointGet;
+            var enpointGetAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointGet>();
+            var getEndpoint = enpointGetAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointGet;
             if (!string.IsNullOrEmpty(getEndpoint))
             {
                 var builder = app.MapGet(getEndpoint, [Authorize] async (int? offset, int? limit, string? query, string? sort, ClaimsPrincipal user, IDWHRepository<T> repository) =>
@@ -57,7 +60,9 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var getEndpointWithFields = config?.EndpointGetWithFields;
+
+            var enpointGetWithFieldsAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointGetWithFields>();
+            var getEndpointWithFields = enpointGetWithFieldsAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointGetWithFields;
             if (!string.IsNullOrEmpty(getEndpointWithFields))
             {
                 var builder = app.MapGet(getEndpointWithFields, [Authorize] async (string? fields, int? offset, int? limit, string? query, string? sort, ClaimsPrincipal user, IDWHRepository<T> repository) =>
@@ -98,7 +103,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var getByIdEndpoint = config?.EndpointGetById;
+            var enpointGetByIdAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointGetById>();
+            var getByIdEndpoint = enpointGetByIdAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointGetById;
             if (!string.IsNullOrEmpty(getByIdEndpoint))
             {
                 if (!getByIdEndpoint.Contains("{id}")) getByIdEndpoint = getByIdEndpoint + "/{id}";
@@ -132,7 +138,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var getPropertiesEndpoint = config?.EndpointProperties;
+            var enpointGetPropertiesAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointProperties>();
+            var getPropertiesEndpoint = enpointGetPropertiesAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointProperties;
             if (!string.IsNullOrEmpty(getPropertiesEndpoint))
             {
                 if (!getPropertiesEndpoint.Contains("{propertyId}")) getPropertiesEndpoint = getPropertiesEndpoint + "/{propertyId}";
@@ -181,7 +188,8 @@ namespace RestDWH.Base.Extensios
             }
 
 
-            var getByIdWithFieldsEndpoint = config?.EndpointGetByIdWithFields;
+            var enpointGetByIdWithFieldsAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointGetByIdWithFields>();
+            var getByIdWithFieldsEndpoint = enpointGetByIdWithFieldsAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointGetByIdWithFields;
             if (!string.IsNullOrEmpty(getByIdWithFieldsEndpoint))
             {
                 if (!getByIdWithFieldsEndpoint.Contains("{id}")) getByIdWithFieldsEndpoint = getByIdWithFieldsEndpoint + "/{id}";
@@ -216,7 +224,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var postEndpoint = config?.EndpointPost;
+            var enpointPostAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointPost>();
+            var postEndpoint = enpointPostAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointPost;
             if (!string.IsNullOrEmpty(postEndpoint))
             {
                 var builder = app.MapPost(postEndpoint, [Authorize] async (T data, ClaimsPrincipal user, IDWHRepository<T> repository) =>
@@ -241,7 +250,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var putEndpoint = config?.EndpointPut;
+            var enpointPutAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointPut>();
+            var putEndpoint = enpointPostAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointPut;
             if (!string.IsNullOrEmpty(putEndpoint))
             {
                 if (!putEndpoint.Contains("{id}")) putEndpoint = putEndpoint + "/{id}";
@@ -267,7 +277,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var upsertEndpoint = config?.EndpointUpsert;
+            var enpointUpsertAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointUpsert>();
+            var upsertEndpoint = enpointUpsertAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointUpsert;
             if (!string.IsNullOrEmpty(upsertEndpoint))
             {
                 if (!upsertEndpoint.Contains("{id}")) upsertEndpoint = upsertEndpoint + "/{id}";
@@ -299,7 +310,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var patchEndpoint = config?.EndpointPatch;
+            var enpointPatchAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointPatch>();
+            var patchEndpoint = enpointPatchAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointPatch;
             if (!string.IsNullOrEmpty(patchEndpoint))
             {
                 if (!patchEndpoint.Contains("{id}")) patchEndpoint = patchEndpoint + "/{id}";
@@ -312,19 +324,34 @@ namespace RestDWH.Base.Extensios
                         if (customRepository != null) repository = customRepository;
                         var doc = new JsonPatchDocument<T>(data.Select(o =>
                         {
-
-                            var serialized = (o.value as System.Text.Json.JsonElement?)?.GetRawText() ?? o.value.ToString() ?? "";
-                            var value = Newtonsoft.Json.JsonConvert.DeserializeObject(serialized);
-                            return new Microsoft.AspNetCore.JsonPatch.Operations.Operation<T>()
+                            if (o.value == null)
                             {
-                                from = o.from,
-                                op = o.op,
-                                path = o.path,
-                                value = value
-                            };
+
+                                return new Microsoft.AspNetCore.JsonPatch.Operations.Operation<T>()
+                                {
+                                    from = o.from,
+                                    op = o.op,
+                                    path = o.path,
+                                    value = null
+                                };
+                            }
+                            else
+                            {
+
+                                var serialized = (o.value as System.Text.Json.JsonElement?)?.GetRawText() ?? o.value.ToString() ?? "";
+                                var value = Newtonsoft.Json.JsonConvert.DeserializeObject(serialized);
+                                return new Microsoft.AspNetCore.JsonPatch.Operations.Operation<T>()
+                                {
+                                    from = o.from,
+                                    op = o.op,
+                                    path = o.path,
+                                    value = value
+                                };
+                            }
 
                         }).Where(o => o.value != null).ToList(), new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver());
-                        return Results.Ok(await repository.PatchAsync(id, doc, user));
+                        var ret = await repository.PatchAsync(id, doc, user);
+                        return Results.Ok(ret);
                     }
                     catch (UnauthorizedAccessException unauth)
                     {
@@ -346,7 +373,8 @@ namespace RestDWH.Base.Extensios
                 builder.WithOpenApi();
             }
 
-            var deleteEndpoint = config?.EndpointDelete;
+            var enpointDeleteAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointDelete>();
+            var deleteEndpoint = enpointDeleteAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointDelete;
             if (!string.IsNullOrEmpty(deleteEndpoint))
             {
                 if (!deleteEndpoint.Contains("{id}")) deleteEndpoint = deleteEndpoint + "/{id}";

@@ -17,10 +17,12 @@
         public string? EndpointPatch { get; private set; }
         public string? EndpointDelete { get; private set; }
         public string? EndpointProperties { get; private set; }
+        public string? ApiName { get; private set; }
 
         public RestDWHEntity(
             string name,
             Type? events = null,
+            string? apiName = null,
             string? endpointGet = null,
             string? endpointGetWithFields = null,
             string? endpointGetById = null,
@@ -34,6 +36,7 @@
         )
         {
             Name = name;
+            ApiName = apiName;
             Events = events;
             EndpointGet = endpointGet;
             EndpointGetWithFields = endpointGetWithFields;
@@ -46,5 +49,9 @@
             EndpointDelete = endpointDelete;
             EndpointProperties = endpointProperties;
         }
+        public string MainTable => $"restdwh-{Name.ToLowerInvariant()}-main";
+        public string LogTable => $"restdwh-{Name.ToLowerInvariant()}-main";
+        public string ApiNameOrName => ApiName ?? Name.ToLowerInvariant();
+
     }
 }

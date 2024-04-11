@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
-using Microsoft.AspNetCore.JsonPatch.Adapters;
-using Microsoft.AspNetCore.JsonPatch.Operations;
 using Nest;
 using RestDWH.Base.Extensions;
 using RestDWH.Base.Model;
@@ -16,6 +14,7 @@ namespace RestDWH.Elastic.Repository
         private readonly IElasticClient _elasticClient;
         private readonly RestDWHEvents<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
+
         public RestDWHElasticSearchRepository(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger)
         {
             _elasticClient = elasticClient;
@@ -161,7 +160,7 @@ namespace RestDWH.Elastic.Repository
 
                 if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
                 if (!searchResponse.Aggregations.Any()) throw new Exception("No aggregations");
-                var result = searchResponse.Aggregations.Terms(attribute).Buckets.Select(s => s.Key as object).Skip(offset).ToList();
+                var result = searchResponse.Aggregations.Terms(attribute).Buckets.Select(s => s.Key as object).Skip(offset).Take(limit).ToList();
                 return result;
             }
             catch (Exception ex)
@@ -378,48 +377,56 @@ namespace RestDWH.Elastic.Repository
 
         public virtual async Task<DBBase<TEnt>> PatchAsync(string id, JsonPatchDocument<TEnt> data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
-            (id, data) = await _events.BeforePatchAsync(id, data, user);
-            var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
-            if (searchResponse.Source == null || searchResponse.Source.Data == null)
+            try
             {
-                throw new Exception("Not found");
+                (id, data) = await _events.BeforePatchAsync(id, data, user);
+                var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
+                if (searchResponse.Source == null || searchResponse.Source.Data == null)
+                {
+                    throw new Exception("Not found");
+                }
+                var orig = searchResponse.Source.Data.DeepCopy();
+
+                data.ApplyTo(searchResponse.Source.Data);
+
+                if (orig.Equals(searchResponse.Source.Data))
+                {
+                    return searchResponse.Source;// do not update if the docs are equal
+                }
+                var instance = Activator.CreateInstance(typeof(DBBase<TEnt>)) as DBBase<TEnt>;
+                if (instance == null) throw new Exception("Unable to inicialize DBBase<TEnt>");
+                instance.Created = searchResponse.Source.Created;
+                instance.Updated = DateTimeOffset.Now;
+                instance.Data = searchResponse.Source.Data;
+                instance.CreatedBy = searchResponse.Source?.CreatedBy;
+                instance.UpdatedBy = user?.Identity?.Name;
+
+                var instanceLog = Activator.CreateInstance(typeof(DBBaseLog<TEnt>)) as DBBaseLog<TEnt>;
+                if (instanceLog == null) throw new Exception("Unable to inicialize DBBaseLog<TEnt>");
+                instanceLog.Created = searchResponse.Source.Created;
+                instanceLog.Updated = DateTimeOffset.Now;
+                instanceLog.Data = orig;
+                instanceLog.CreatedBy = searchResponse.Source?.CreatedBy;
+                instanceLog.UpdatedBy = searchResponse.Source?.UpdatedBy;
+                instanceLog.RefId = searchResponse.Id;
+                instanceLog.Version = searchResponse.Version;
+                (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user);
+                var updateResponse = await _elasticClient.BulkAsync(r =>
+                    r.
+                    Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
+                    Update<DBBase<TEnt>>(r => r.Id(id).Doc(instance)));
+
+                var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
+                if (finalResponse == null) throw new Exception($"FATAL Error occured. Failed to update {id} and instance is not available any more");
+                finalResponse.Source.Id = finalResponse.Id;
+                var result = await _events.AfterPatchAsync(finalResponse.Source, id, data, user);
+                return result;
             }
-            var orig = searchResponse.Source.Data.DeepCopy();
-
-            data.ApplyTo(searchResponse.Source.Data);
-
-            if (orig.Equals(searchResponse.Source.Data))
+            catch (Exception exc)
             {
-                return searchResponse.Source;// do not update if the docs are equal
+                _logger.LogError(exc.Message, exc);
+                throw;
             }
-            var instance = Activator.CreateInstance(typeof(DBBase<TEnt>)) as DBBase<TEnt>;
-            if (instance == null) throw new Exception("Unable to inicialize DBBase<TEnt>");
-            instance.Created = searchResponse.Source.Created;
-            instance.Updated = DateTimeOffset.Now;
-            instance.Data = searchResponse.Source.Data;
-            instance.CreatedBy = searchResponse.Source?.CreatedBy;
-            instance.UpdatedBy = user?.Identity?.Name;
-
-            var instanceLog = Activator.CreateInstance(typeof(DBBaseLog<TEnt>)) as DBBaseLog<TEnt>;
-            if (instanceLog == null) throw new Exception("Unable to inicialize DBBaseLog<TEnt>");
-            instanceLog.Created = searchResponse.Source.Created;
-            instanceLog.Updated = DateTimeOffset.Now;
-            instanceLog.Data = orig;
-            instanceLog.CreatedBy = searchResponse.Source?.CreatedBy;
-            instanceLog.UpdatedBy = searchResponse.Source?.UpdatedBy;
-            instanceLog.RefId = searchResponse.Id;
-            instanceLog.Version = searchResponse.Version;
-            (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user);
-            var updateResponse = await _elasticClient.BulkAsync(r =>
-                r.
-                Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
-                Update<DBBase<TEnt>>(r => r.Id(id).Doc(instance)));
-
-            var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
-            if (finalResponse == null) throw new Exception($"FATAL Error occured. Failed to update {id} and instance is not available any more");
-            finalResponse.Source.Id = finalResponse.Id;
-            var result = await _events.AfterPatchAsync(finalResponse.Source, id, data, user);
-            return result;
         }
         public virtual async Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
@@ -462,5 +469,4 @@ namespace RestDWH.Elastic.Repository
             return result;
         }
     }
-
 }
