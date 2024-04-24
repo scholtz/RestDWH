@@ -1,4 +1,6 @@
-﻿using Nest;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Nest;
 using RestDWH.Base.Attributes;
 using RestDWH.Base.Model;
 using RestDWHElastic.Repository;
@@ -12,11 +14,40 @@ namespace RestDWH.Elastic.Repository
         private readonly IElasticClient _elasticClient;
         private readonly RestDWHEvents<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
-        public RestDWHElasticSearchRepositoryExtended(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger)
+        private readonly IOptionsMonitor<Model.Config.Elastic> _config;
+        public RestDWHElasticSearchRepositoryExtended(
+            IElasticClient elasticClient,
+            RestDWHEvents<TEnt> events,
+            ILogger<RestDWHElasticSearchRepository<TEnt>> logger,
+            IOptionsMonitor<Model.Config.Elastic> config
+            )
         {
             _elasticClient = elasticClient;
             _events = events;
             _logger = logger;
+            _config = config;
+        }
+        /// <summary>
+        /// Returns the elastic index for log data
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public string GetLogIndex()
+        {
+            var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
+            if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
+            return $"{_config.CurrentValue.IndexPrefix}{config.MainTable}{_config.CurrentValue.IndexSuffixLog}";
+        }
+        /// <summary>
+        /// Returns the elastic index for main data
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public string GetMainIndex()
+        {
+            var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
+            if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
+            return $"{_config.CurrentValue.IndexPrefix}{config.MainTable}{_config.CurrentValue.IndexSuffixMain}";
         }
 
         public virtual async Task<DBListBase<TEnt, DBBase<TEnt>>> GetAsync(string query, System.Security.Claims.ClaimsPrincipal? user = null)
@@ -25,7 +56,7 @@ namespace RestDWH.Elastic.Repository
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
             //(offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
-            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(config.MainTable, query, searchParams);
+            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
             if (!string.IsNullOrEmpty(ret.OriginalException?.Message)) throw new Exception(ret.OriginalException?.Message);
             var list = ret.Hits.Select(s => { s.Source.Id = s.Id; return s.Source; }).ToArray();
             var instance = Activator.CreateInstance(typeof(DBListBase<TEnt, DBBase<TEnt>>)) as DBListBase<TEnt, DBBase<TEnt>>;
@@ -37,6 +68,7 @@ namespace RestDWH.Elastic.Repository
             //var result = await _events.AfterGetAsync(instance, offset, limit, query, sort, user);
             return instance;
         }
+
         /// <summary>
         /// Get properties from
         /// </summary>
@@ -53,7 +85,7 @@ namespace RestDWH.Elastic.Repository
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
             //(offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
-            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(config.MainTable, query, searchParams);
+            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
 
             if (!string.IsNullOrEmpty(ret.OriginalException?.Message)) throw new Exception(ret.OriginalException?.Message);
             if (!ret.Aggregations.Any()) throw new Exception("No aggregations");

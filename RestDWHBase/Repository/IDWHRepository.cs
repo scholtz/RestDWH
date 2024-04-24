@@ -18,5 +18,4 @@ namespace RestDWH.Base.Repository
         public Task<DBBase<TEnt>> PatchAsync(string id, JsonPatchDocument<TEnt> data, System.Security.Claims.ClaimsPrincipal? user = null);
         public Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null);
     }
-
 }

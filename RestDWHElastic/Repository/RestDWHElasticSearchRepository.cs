@@ -1,9 +1,14 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.JsonPatch.Adapters;
+using Microsoft.AspNetCore.JsonPatch.Operations;
+using Microsoft.Extensions.Logging;
 using Nest;
 using RestDWH.Base.Extensions;
 using RestDWH.Base.Model;
 using RestDWH.Base.Repository;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 
 namespace RestDWH.Elastic.Repository
@@ -14,18 +19,20 @@ namespace RestDWH.Elastic.Repository
         private readonly IElasticClient _elasticClient;
         private readonly RestDWHEvents<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
+        private readonly IServiceProvider _serviceProvider;
 
-        public RestDWHElasticSearchRepository(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger)
+        public RestDWHElasticSearchRepository(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger, IServiceProvider serviceProvider)
         {
             _elasticClient = elasticClient;
             _events = events;
             _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
         public virtual async Task<DBListBase<TEnt, DBBase<TEnt>>> GetAsync(int offset = 0, int limit = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
         {
 
-            (offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user);
+            (offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user, _serviceProvider);
 
 
             // Define the search request
@@ -89,7 +96,7 @@ namespace RestDWH.Elastic.Repository
             instance.Offset = offset;
             instance.Limit = limit;
             instance.TotalCount = count.Count;
-            var result = await _events.AfterGetAsync(instance, offset, limit, query, sort, user);
+            var result = await _events.AfterGetAsync(instance, offset, limit, query, sort, user, _serviceProvider);
             return result;
         }
 
@@ -110,7 +117,7 @@ namespace RestDWH.Elastic.Repository
                 list.Add(itemRet);
             }
             ret.Results = list;
-            ret = await _events.AfterGetWithFieldsAsync(ret, fields, offset, limit, query, sort, user);
+            ret = await _events.AfterGetWithFieldsAsync(ret, fields, offset, limit, query, sort, user, _serviceProvider);
             return ret;
         }
 
@@ -119,7 +126,7 @@ namespace RestDWH.Elastic.Repository
             try
             {
 
-                id = await _events.BeforeGetByIdAsync(id, user);
+                id = await _events.BeforeGetByIdAsync(id, user, _serviceProvider);
                 var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
                 if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
                 if (searchResponse.Source == null)
@@ -127,7 +134,7 @@ namespace RestDWH.Elastic.Repository
                     return null;
                 }
                 searchResponse.Source.Id = searchResponse.Id;
-                var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user);
+                var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user, _serviceProvider);
                 return result;
             }
             catch (Exception ex)
@@ -173,14 +180,14 @@ namespace RestDWH.Elastic.Repository
         public virtual async Task<Dictionary<string, object>> GetByIdWithFieldsAsync(string id, string fields = "id", System.Security.Claims.ClaimsPrincipal? user = null)
         {
 
-            id = await _events.BeforeGetByIdAsync(id, user);
+            id = await _events.BeforeGetByIdAsync(id, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
             if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
             if (searchResponse.Source == null) { throw new Exception("Not found"); }
             searchResponse.Source.Id = searchResponse.Id;
-            var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user);
+            var result = await _events.AfterGetByIdAsync(searchResponse.Source, id, user, _serviceProvider);
             var mapResult = MapEntityToFields(fields, result);
-            mapResult = await _events.AfterGetByIdWithFieldsAsync(mapResult, fields, id, user);
+            mapResult = await _events.AfterGetByIdWithFieldsAsync(mapResult, fields, id, user, _serviceProvider);
             return mapResult;
         }
 
@@ -267,7 +274,7 @@ namespace RestDWH.Elastic.Repository
         }
         public virtual async Task<DBBase<TEnt>> PostAsync(TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
-            data = await _events.BeforePostAsync(data, user);
+            data = await _events.BeforePostAsync(data, user, _serviceProvider);
             var now = DateTimeOffset.Now;
             var instance = Activator.CreateInstance(typeof(DBBase<TEnt>)) as DBBase<TEnt>;
             if (instance == null) throw new Exception("Unable to inicialize DBBase<TEnt>");
@@ -276,17 +283,17 @@ namespace RestDWH.Elastic.Repository
             instance.Data = data;
             instance.CreatedBy = user?.Identity?.Name;
             instance.UpdatedBy = user?.Identity?.Name;
-            instance = await _events.ToCreate(instance, user);
+            instance = await _events.ToCreate(instance, user, _serviceProvider);
             var indexResponse = await _elasticClient.IndexDocumentAsync(instance);
             if (!indexResponse.IsValid) throw new Exception(indexResponse.DebugInformation);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(indexResponse.Id);
             searchResponse.Source.Id = indexResponse.Id;
-            var result = await _events.AfterPostAsync(searchResponse.Source, data, user);
+            var result = await _events.AfterPostAsync(searchResponse.Source, data, user, _serviceProvider);
             return result;
         }
         public virtual async Task<DBBase<TEnt>> PutAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
-            (id, data) = await _events.BeforePutAsync(id, data, user);
+            (id, data) = await _events.BeforePutAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (!searchResponse.IsValid)
             {
@@ -313,7 +320,7 @@ namespace RestDWH.Elastic.Repository
             instanceLog.UpdatedBy = searchResponse.Source.UpdatedBy;
             instanceLog.RefId = searchResponse.Id;
             instanceLog.Version = searchResponse.Version;
-            (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user);
+            (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user, _serviceProvider);
             var updateResponse = await _elasticClient.BulkAsync(r =>
                 r.
                 Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
@@ -322,13 +329,13 @@ namespace RestDWH.Elastic.Repository
             var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (finalResponse == null) throw new Exception($"FATAL Error occured. Failed to update {id} and instance is not available any more");
             finalResponse.Source.Id = finalResponse.Id;
-            var result = await _events.AfterPutAsync(finalResponse.Source, id, data, user);
+            var result = await _events.AfterPutAsync(finalResponse.Source, id, data, user, _serviceProvider);
             return result;
         }
 
         public virtual async Task<DBBase<TEnt>> UpsertAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
-            (id, data) = await _events.BeforeUpsertAsync(id, data, user);
+            (id, data) = await _events.BeforeUpsertAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (searchResponse.Source != null && data?.Equals(searchResponse.Source.Data) == true)
             {
@@ -346,7 +353,7 @@ namespace RestDWH.Elastic.Repository
             if (searchResponse.Source == null)
             {
                 // new record
-                instance = await _events.ToCreate(instance, user);
+                instance = await _events.ToCreate(instance, user, _serviceProvider);
                 _ = await _elasticClient.IndexDocumentAsync(instance);
             }
             else
@@ -360,7 +367,7 @@ namespace RestDWH.Elastic.Repository
                 instanceLog.UpdatedBy = searchResponse.Source?.UpdatedBy;
                 instanceLog.RefId = searchResponse.Id;
                 instanceLog.Version = searchResponse.Version;
-                (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user);
+                (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user, _serviceProvider);
                 _ = await _elasticClient.BulkAsync(r =>
                     r.
                     Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
@@ -370,7 +377,7 @@ namespace RestDWH.Elastic.Repository
             var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (finalResponse == null) throw new Exception($"FATAL Error occured. Failed to update {id} and instance is not available any more");
             finalResponse.Source.Id = finalResponse.Id;
-            var result = await _events.AfterUpsertAsync(finalResponse.Source, id, data, user);
+            var result = await _events.AfterUpsertAsync(finalResponse.Source, id, data, user, _serviceProvider);
             return result;
         }
 
@@ -379,7 +386,7 @@ namespace RestDWH.Elastic.Repository
         {
             try
             {
-                (id, data) = await _events.BeforePatchAsync(id, data, user);
+                (id, data) = await _events.BeforePatchAsync(id, data, user, _serviceProvider);
                 var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
                 if (searchResponse.Source == null || searchResponse.Source.Data == null)
                 {
@@ -410,7 +417,7 @@ namespace RestDWH.Elastic.Repository
                 instanceLog.UpdatedBy = searchResponse.Source?.UpdatedBy;
                 instanceLog.RefId = searchResponse.Id;
                 instanceLog.Version = searchResponse.Version;
-                (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user);
+                (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user, _serviceProvider);
                 var updateResponse = await _elasticClient.BulkAsync(r =>
                     r.
                     Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
@@ -419,7 +426,7 @@ namespace RestDWH.Elastic.Repository
                 var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
                 if (finalResponse == null) throw new Exception($"FATAL Error occured. Failed to update {id} and instance is not available any more");
                 finalResponse.Source.Id = finalResponse.Id;
-                var result = await _events.AfterPatchAsync(finalResponse.Source, id, data, user);
+                var result = await _events.AfterPatchAsync(finalResponse.Source, id, data, user, _serviceProvider);
                 return result;
             }
             catch (Exception exc)
@@ -431,7 +438,7 @@ namespace RestDWH.Elastic.Repository
         public virtual async Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             //var deleteResponse = await _elasticClient.DeleteAsync<DBPerson>(id);
-            id = await _events.BeforeDeleteAsync(id, user);
+            id = await _events.BeforeDeleteAsync(id, user, _serviceProvider);
 
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (!searchResponse.IsValid)
@@ -451,7 +458,7 @@ namespace RestDWH.Elastic.Repository
             instanceLog.RefId = searchResponse.Id;
             instanceLog.Version = searchResponse.Version;
 
-            instanceLog = await _events.ToDelete(instanceLog, user);
+            instanceLog = await _events.ToDelete(instanceLog, user, _serviceProvider);
 
             var updateResponse = await _elasticClient.BulkAsync(r =>
                 r.
@@ -465,7 +472,7 @@ namespace RestDWH.Elastic.Repository
                 throw new Exception(string.Join(";", errors));
             }
             searchResponse.Source.Id = searchResponse.Id;
-            var result = await _events.AfterDeleteAsync(searchResponse.Source, id, user);
+            var result = await _events.AfterDeleteAsync(searchResponse.Source, id, user, _serviceProvider);
             return result;
         }
     }

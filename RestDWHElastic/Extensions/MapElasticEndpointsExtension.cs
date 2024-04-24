@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using RestDWH.Base.Attributes;
 using RestDWH.Base.Model;
 using RestDWH.Elastic.Attributes.Endpoints;
