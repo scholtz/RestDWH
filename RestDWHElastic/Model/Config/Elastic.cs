@@ -28,6 +28,13 @@
         /// Use lowercase chars and dash.
         /// </summary>
         public string IndexSuffixLog { get; set; } = "-log";
-
+        /// <summary>
+        /// Ensure that schema is created
+        /// </summary>
+        public bool EnsureCreated { get; set; } = true;
+        /// <summary>
+        /// Ensure that migrations are applied
+        /// </summary>
+        public bool ApplyMigration { get; set; } = false;
     }
 }

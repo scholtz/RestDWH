@@ -18,7 +18,7 @@
 		<RepositoryUrl>https://github.com/scholtz/RestDWH/</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>data apicontroller dwh elasticsearch</PackageTags>
-		<Version>2.2024.04.24</Version>
+		<Version>2.2024.04.26</Version>
 		<AssemblyName>RestDWH.ElasticSearch</AssemblyName>
 	</PropertyGroup>
 

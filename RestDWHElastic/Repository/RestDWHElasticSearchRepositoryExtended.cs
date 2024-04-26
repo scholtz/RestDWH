@@ -2,8 +2,7 @@
 using Microsoft.Extensions.Options;
 using Nest;
 using RestDWH.Base.Attributes;
-using RestDWH.Base.Model;
-using RestDWHElastic.Repository;
+using RestDWH.Elastic.Model;
 using System.Reflection;
 
 namespace RestDWH.Elastic.Repository
@@ -12,20 +11,23 @@ namespace RestDWH.Elastic.Repository
         where TEnt : class
     {
         private readonly IElasticClient _elasticClient;
-        private readonly RestDWHEvents<TEnt> _events;
+        private readonly RestDWHEventsElastic<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
         private readonly IOptionsMonitor<Model.Config.Elastic> _config;
+        private readonly IServiceProvider _serviceProvider;
         public RestDWHElasticSearchRepositoryExtended(
             IElasticClient elasticClient,
-            RestDWHEvents<TEnt> events,
+            RestDWHEventsElastic<TEnt> events,
             ILogger<RestDWHElasticSearchRepository<TEnt>> logger,
-            IOptionsMonitor<Model.Config.Elastic> config
+            IOptionsMonitor<Model.Config.Elastic> config,
+            IServiceProvider serviceProvider
             )
         {
             _elasticClient = elasticClient;
             _events = events;
             _logger = logger;
             _config = config;
+            _serviceProvider = serviceProvider;
         }
         /// <summary>
         /// Returns the elastic index for log data
@@ -50,22 +52,23 @@ namespace RestDWH.Elastic.Repository
             return $"{_config.CurrentValue.IndexPrefix}{config.MainTable}{_config.CurrentValue.IndexSuffixMain}";
         }
 
-        public virtual async Task<DBListBase<TEnt, DBBase<TEnt>>> GetAsync(string query, System.Security.Claims.ClaimsPrincipal? user = null)
+        public virtual async Task<Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>> QueryAsync(string query, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
-            //(offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user);
+            (query) = await _events.BeforeQueryAsync(query, user);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
-            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
+            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Base.Model.DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
             if (!string.IsNullOrEmpty(ret.OriginalException?.Message)) throw new Exception(ret.OriginalException?.Message);
             var list = ret.Hits.Select(s => { s.Source.Id = s.Id; return s.Source; }).ToArray();
-            var instance = Activator.CreateInstance(typeof(DBListBase<TEnt, DBBase<TEnt>>)) as DBListBase<TEnt, DBBase<TEnt>>;
+            var instance = Activator.CreateInstance(typeof(Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>)) as Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>;
             if (instance == null) throw new Exception("Unable to inicialize DBListBase<TEnt, DBBase<TEnt>>");
             instance.Results = list;
             instance.Offset = 0;
             instance.Limit = 0;
             instance.TotalCount = ret.Total;
-            //var result = await _events.AfterGetAsync(instance, offset, limit, query, sort, user);
+            var result = await _events.AfterQueryAsync(instance, query, user);
             return instance;
         }
 
@@ -81,11 +84,12 @@ namespace RestDWH.Elastic.Repository
         /// <exception cref="Exception"></exception>
         public virtual async Task<List<object>?> GetPropertiesAsync(string query, string attribute, int offset = 0, int limit = 10, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
-            //(offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user);
+            (query, attribute, offset, limit) = await _events.BeforeGetPropertiesAsync(query, attribute, offset, limit, user);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
-            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
+            var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Base.Model.DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
 
             if (!string.IsNullOrEmpty(ret.OriginalException?.Message)) throw new Exception(ret.OriginalException?.Message);
             if (!ret.Aggregations.Any()) throw new Exception("No aggregations");

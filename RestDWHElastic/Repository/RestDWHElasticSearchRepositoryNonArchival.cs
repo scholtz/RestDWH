@@ -3,17 +3,17 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using RestDWH.Base.Extensions;
 using RestDWH.Base.Model;
-using RestDWH.Elastic.Repository;
+using RestDWH.Elastic.Model;
 
-namespace RestDWHElastic.Repository
+namespace RestDWH.Elastic.Repository
 {
     public class RestDWHElasticSearchRepositoryNonArchival<TEnt> : RestDWHElasticSearchRepository<TEnt> where TEnt : class
     {
         private readonly IElasticClient _elasticClient;
-        private readonly RestDWHEvents<TEnt> _events;
+        private readonly RestDWHEventsElastic<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
         private readonly IServiceProvider _serviceProvider;
-        public RestDWHElasticSearchRepositoryNonArchival(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger, IServiceProvider serviceProvider) : base(elasticClient, events, logger, serviceProvider)
+        public RestDWHElasticSearchRepositoryNonArchival(IElasticClient elasticClient, RestDWHEventsElastic<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger, IServiceProvider serviceProvider) : base(elasticClient, events, logger, serviceProvider)
         {
             _elasticClient = elasticClient;
             _events = events;
@@ -23,6 +23,7 @@ namespace RestDWHElastic.Repository
 
         public override async Task<DBBase<TEnt>> PutAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             (id, data) = await _events.BeforePutAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (!searchResponse.IsValid)
@@ -64,6 +65,7 @@ namespace RestDWHElastic.Repository
 
         public override async Task<DBBase<TEnt>> UpsertAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             (id, data) = await _events.BeforeUpsertAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (searchResponse.Source != null && data?.Equals(searchResponse.Source.Data) == true)
@@ -117,6 +119,7 @@ namespace RestDWHElastic.Repository
         {
             try
             {
+                await _events.BeforeEachAsync(user, _serviceProvider);
                 (id, data) = await _events.BeforePatchAsync(id, data, user, _serviceProvider);
                 var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
                 if (!searchResponse.IsValid || searchResponse.Source == null)
@@ -177,6 +180,7 @@ namespace RestDWHElastic.Repository
         }
         public override async Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             //var deleteResponse = await _elasticClient.DeleteAsync<DBPerson>(id);
             id = await _events.BeforeDeleteAsync(id, user, _serviceProvider);
 

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using RestDWH.Base.Attributes;
 using RestDWH.Base.Model;
 using RestDWH.Elastic.Attributes.Endpoints;
-using RestDWHElastic.Repository;
+using RestDWH.Elastic.Repository;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -28,7 +28,7 @@ namespace RestDWH.Base.Extensios
                         try
                         {
                             if (customRepository != null) repository = customRepository;
-                            var ret = await repository.GetAsync(query, user);
+                            var ret = await repository.QueryAsync(query, user);
                             return Results.Ok(ret);
                         }
                         catch (UnauthorizedAccessException unauth)

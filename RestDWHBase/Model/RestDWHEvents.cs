@@ -6,6 +6,16 @@ namespace RestDWH.Base.Model
     public class RestDWHEvents<T>
         where T : class
     {
+        /// <summary>
+        /// Before each data request
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="serviceProvider"></param>
+        /// <returns></returns>
+        public virtual async Task BeforeEachAsync(System.Security.Claims.ClaimsPrincipal? user = null, IServiceProvider? serviceProvider = null)
+        {
+
+        }
         public virtual async Task<(int from, int size, string query, string sort)> BeforeGetAsync(int from = 0, int size = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null, IServiceProvider? serviceProvider = null)
         {
             return (from, size, query, sort);

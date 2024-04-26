@@ -1,14 +1,11 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
-using Microsoft.AspNetCore.JsonPatch.Adapters;
-using Microsoft.AspNetCore.JsonPatch.Operations;
 using Microsoft.Extensions.Logging;
 using Nest;
 using RestDWH.Base.Extensions;
 using RestDWH.Base.Model;
 using RestDWH.Base.Repository;
-using System.Linq;
+using RestDWH.Elastic.Model;
 using System.Reflection;
-using System.Reflection.Metadata;
 using System.Security.Claims;
 
 namespace RestDWH.Elastic.Repository
@@ -17,11 +14,11 @@ namespace RestDWH.Elastic.Repository
         where TEnt : class
     {
         private readonly IElasticClient _elasticClient;
-        private readonly RestDWHEvents<TEnt> _events;
+        private readonly Model.RestDWHEventsElastic<TEnt> _events;
         private readonly ILogger<RestDWHElasticSearchRepository<TEnt>> _logger;
         private readonly IServiceProvider _serviceProvider;
 
-        public RestDWHElasticSearchRepository(IElasticClient elasticClient, RestDWHEvents<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger, IServiceProvider serviceProvider)
+        public RestDWHElasticSearchRepository(IElasticClient elasticClient, RestDWHEventsElastic<TEnt> events, ILogger<RestDWHElasticSearchRepository<TEnt>> logger, IServiceProvider serviceProvider)
         {
             _elasticClient = elasticClient;
             _events = events;
@@ -29,9 +26,9 @@ namespace RestDWH.Elastic.Repository
             _serviceProvider = serviceProvider;
         }
 
-        public virtual async Task<DBListBase<TEnt, DBBase<TEnt>>> GetAsync(int offset = 0, int limit = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        public virtual async Task<Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>> GetAsync(int offset = 0, int limit = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
         {
-
+            await _events.BeforeEachAsync(user, _serviceProvider);
             (offset, limit, query, sort) = await _events.BeforeGetAsync(offset, limit, query, sort, user, _serviceProvider);
 
 
@@ -49,7 +46,7 @@ namespace RestDWH.Elastic.Repository
 
             //var searchResponse = await _elasticClient.SearchAsync<DBBase<TEnt>>(searchRequest);
 
-            var searchResponse = await _elasticClient.SearchAsync<DBBase<TEnt>>(s =>
+            var searchResponse = await _elasticClient.SearchAsync<Base.Model.DBBase<TEnt>>(s =>
             {
                 s = s.From(offset);
                 s = s.Size(limit);
@@ -84,13 +81,13 @@ namespace RestDWH.Elastic.Repository
             });
             if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
 
-            var count = await _elasticClient.CountAsync<DBBase<TEnt>>(s => s
+            var count = await _elasticClient.CountAsync<Base.Model.DBBase<TEnt>>(s => s
                 //.Index("person-main")
                 .QueryOnQueryString(query)
                 );
 
             var list = searchResponse.Hits.Select(s => { s.Source.Id = s.Id; return s.Source; }).ToArray();
-            var instance = Activator.CreateInstance(typeof(DBListBase<TEnt, DBBase<TEnt>>)) as DBListBase<TEnt, DBBase<TEnt>>;
+            var instance = Activator.CreateInstance(typeof(Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>)) as Base.Model.DBListBase<TEnt, Base.Model.DBBase<TEnt>>;
             if (instance == null) throw new Exception("Unable to inicialize DBListBase<TEnt, DBBase<TEnt>>");
             instance.Results = list;
             instance.Offset = offset;
@@ -100,10 +97,12 @@ namespace RestDWH.Elastic.Repository
             return result;
         }
 
-        public virtual async Task<FieldsListBase> GetWithFieldsAsync(string fields = "id", int offset = 0, int limit = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
+        public virtual async Task<Base.Model.FieldsListBase> GetWithFieldsAsync(string fields = "id", int offset = 0, int limit = 10, string query = "*", string sort = "", System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
+
             var data = await GetAsync(offset, limit, query, sort, user);
-            var ret = new FieldsListBase() { From = data.Offset, Size = data.Limit, TotalCount = data.TotalCount };
+            var ret = new Base.Model.FieldsListBase() { From = data.Offset, Size = data.Limit, TotalCount = data.TotalCount };
             var list = new List<Dictionary<string, object>>();
             var fieldsStruct = ParseFields(fields);
             foreach (var item in data.Results)
@@ -121,13 +120,14 @@ namespace RestDWH.Elastic.Repository
             return ret;
         }
 
-        public virtual async Task<DBBase<TEnt>?> GetByIdAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
+        public virtual async Task<Base.Model.DBBase<TEnt>?> GetByIdAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
             try
             {
+                await _events.BeforeEachAsync(user, _serviceProvider);
 
                 id = await _events.BeforeGetByIdAsync(id, user, _serviceProvider);
-                var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
+                var searchResponse = await _elasticClient.GetAsync<Base.Model.DBBase<TEnt>>(id);//
                 if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
                 if (searchResponse.Source == null)
                 {
@@ -148,7 +148,9 @@ namespace RestDWH.Elastic.Repository
         {
             try
             {
-                var searchResponse = await _elasticClient.SearchAsync<DBBase<TEnt>>(s =>
+                await _events.BeforeEachAsync(user, _serviceProvider);
+
+                var searchResponse = await _elasticClient.SearchAsync<Base.Model.DBBase<TEnt>>(s =>
                 {
                     s = s.QueryOnQueryString(query);// 
                     s = s.Aggregations(a => a.Terms(attribute, c =>
@@ -179,9 +181,9 @@ namespace RestDWH.Elastic.Repository
 
         public virtual async Task<Dictionary<string, object>> GetByIdWithFieldsAsync(string id, string fields = "id", System.Security.Claims.ClaimsPrincipal? user = null)
         {
-
+            await _events.BeforeEachAsync(user, _serviceProvider);
             id = await _events.BeforeGetByIdAsync(id, user, _serviceProvider);
-            var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);//
+            var searchResponse = await _elasticClient.GetAsync<Base.Model.DBBase<TEnt>>(id);//
             if (!string.IsNullOrEmpty(searchResponse.OriginalException?.Message)) throw new Exception(searchResponse.OriginalException?.Message);
             if (searchResponse.Source == null) { throw new Exception("Not found"); }
             searchResponse.Source.Id = searchResponse.Id;
@@ -191,7 +193,7 @@ namespace RestDWH.Elastic.Repository
             return mapResult;
         }
 
-        public Dictionary<string, object> MapEntityToFields(string fields, DBBase<TEnt> obj)
+        public Dictionary<string, object> MapEntityToFields(string fields, Base.Model.DBBase<TEnt> obj)
         {
             var ret = new Dictionary<string, object>();
             foreach (var fieldKV in ParseFields(fields))
@@ -232,7 +234,7 @@ namespace RestDWH.Elastic.Repository
             }
             return ret;
         }
-        public object GetObjectValue(string field, DBBase<TEnt> obj)
+        public object GetObjectValue(string field, Base.Model.DBBase<TEnt> obj)
         {
             if (string.IsNullOrEmpty(field))
             {
@@ -274,6 +276,7 @@ namespace RestDWH.Elastic.Repository
         }
         public virtual async Task<DBBase<TEnt>> PostAsync(TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             data = await _events.BeforePostAsync(data, user, _serviceProvider);
             var now = DateTimeOffset.Now;
             var instance = Activator.CreateInstance(typeof(DBBase<TEnt>)) as DBBase<TEnt>;
@@ -293,6 +296,7 @@ namespace RestDWH.Elastic.Repository
         }
         public virtual async Task<DBBase<TEnt>> PutAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             (id, data) = await _events.BeforePutAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (!searchResponse.IsValid)
@@ -335,6 +339,7 @@ namespace RestDWH.Elastic.Repository
 
         public virtual async Task<DBBase<TEnt>> UpsertAsync(string id, TEnt data, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             (id, data) = await _events.BeforeUpsertAsync(id, data, user, _serviceProvider);
             var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
             if (searchResponse.Source != null && data?.Equals(searchResponse.Source.Data) == true)
@@ -386,6 +391,7 @@ namespace RestDWH.Elastic.Repository
         {
             try
             {
+                await _events.BeforeEachAsync(user, _serviceProvider);
                 (id, data) = await _events.BeforePatchAsync(id, data, user, _serviceProvider);
                 var searchResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);
                 if (searchResponse.Source == null || searchResponse.Source.Data == null)
@@ -437,6 +443,7 @@ namespace RestDWH.Elastic.Repository
         }
         public virtual async Task<DBBase<TEnt>> DeleteAsync(string id, System.Security.Claims.ClaimsPrincipal? user = null)
         {
+            await _events.BeforeEachAsync(user, _serviceProvider);
             //var deleteResponse = await _elasticClient.DeleteAsync<DBPerson>(id);
             id = await _events.BeforeDeleteAsync(id, user, _serviceProvider);
 
