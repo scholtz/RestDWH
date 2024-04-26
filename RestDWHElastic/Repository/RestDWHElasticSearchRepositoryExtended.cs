@@ -57,7 +57,7 @@ namespace RestDWH.Elastic.Repository
             await _events.BeforeEachAsync(user, _serviceProvider);
             var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
-            (query) = await _events.BeforeQueryAsync(query, user);
+            (query) = await _events.BeforeQueryAsync(query, user, _serviceProvider);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
             var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Base.Model.DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
             if (!string.IsNullOrEmpty(ret.OriginalException?.Message)) throw new Exception(ret.OriginalException?.Message);
@@ -68,7 +68,7 @@ namespace RestDWH.Elastic.Repository
             instance.Offset = 0;
             instance.Limit = 0;
             instance.TotalCount = ret.Total;
-            var result = await _events.AfterQueryAsync(instance, query, user);
+            var result = await _events.AfterQueryAsync(instance, query, user, _serviceProvider);
             return instance;
         }
 
@@ -87,7 +87,7 @@ namespace RestDWH.Elastic.Repository
             await _events.BeforeEachAsync(user, _serviceProvider);
             var config = typeof(TEnt).GetCustomAttribute<RestDWHEntity>();
             if (config == null) { throw new Exception($"Config not found for {typeof(TEnt)}"); }
-            (query, attribute, offset, limit) = await _events.BeforeGetPropertiesAsync(query, attribute, offset, limit, user);
+            (query, attribute, offset, limit) = await _events.BeforeGetPropertiesAsync(query, attribute, offset, limit, user, _serviceProvider);
             var searchParams = new Elasticsearch.Net.SearchRequestParameters();
             var ret = await _elasticClient.LowLevel.SearchAsync<SearchResponse<Base.Model.DBBase<TEnt>>>(GetMainIndex(), query, searchParams);
 
