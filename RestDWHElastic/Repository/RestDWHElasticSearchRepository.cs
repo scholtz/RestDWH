@@ -373,10 +373,28 @@ namespace RestDWH.Elastic.Repository
                 instanceLog.RefId = searchResponse.Id;
                 instanceLog.Version = searchResponse.Version;
                 (instance, instanceLog) = await _events.ToUpdate(instance, instanceLog, user, _serviceProvider);
-                _ = await _elasticClient.BulkAsync(r =>
-                    r.
-                    Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
-                    Update<DBBase<TEnt>>(r => r.Id(id).Doc(instance)));
+
+                var responseIndexLog = await _elasticClient.IndexDocumentAsync(instanceLog);
+                if (!string.IsNullOrEmpty(responseIndexLog?.ServerError?.Error?.Reason))
+                {
+                    throw new Exception(responseIndexLog?.ServerError?.Error?.Reason);
+                }
+
+                var responseIndexMain = await _elasticClient.IndexDocumentAsync(instance);
+                if (!string.IsNullOrEmpty(responseIndexMain?.ServerError?.Error?.Reason))
+                {
+                    throw new Exception(responseIndexMain?.ServerError?.Error?.Reason);
+                }
+
+
+                //var response = await _elasticClient.BulkAsync(r =>
+                //    r.
+                //    Index<DBBaseLog<TEnt>>(r => r.Document(instanceLog)).
+                //    Update<DBBase<TEnt>>(r => r.Id(id).Doc(instance)));
+                //if (response.Errors)
+                //{
+                //    throw new Exception(response.DebugInformation);
+                //}
             }
 
             var finalResponse = await _elasticClient.GetAsync<DBBase<TEnt>>(id);

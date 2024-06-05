@@ -251,7 +251,7 @@ namespace RestDWH.Base.Extensios
             }
 
             var enpointPutAttribute = typeof(T).GetCustomAttribute<RestDWHEndpointPut>();
-            var putEndpoint = enpointPostAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointPut;
+            var putEndpoint = enpointPutAttribute?.Path?.Replace("{ApiName}", config.ApiNameOrName) ?? config?.EndpointPut;
             if (!string.IsNullOrEmpty(putEndpoint))
             {
                 if (!putEndpoint.Contains("{id}")) putEndpoint = putEndpoint + "/{id}";
